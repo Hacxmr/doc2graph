@@ -45,3 +45,6 @@ tests/
 *.log
 .env
 .ipynb_checkpoints/
+
+# evaluation outputs and generated graphs stay local
+results/

@@ -14,8 +14,7 @@ headers and footers. With page numbers enabled, its reported macro F1 is 0.841
 (95% document-bootstrap CI 0.778–0.895). This does **not** measure the accuracy
 of `CONTINUES`, `SAME_TABLE`, or `REFERS_TO`. Those relations have not yet been
 evaluated against human labels, and the repository has no retrieval benchmark.
-See [the evaluation record](results/doclaynet_eval.md) and
-[method and limits](docs/METHOD.md).
+See [method, baseline record and limits](docs/METHOD.md).
 
 The next research milestone is a labelled pilot set of 30–50 multi-page
 documents, followed by relation-wise evaluation, candidate-generation recall,
@@ -79,9 +78,9 @@ uv run python -m doc2graph.eval_multipage \
 
 Record the source commit, Python/package environment, dataset source/version,
 command/configuration, and complete output alongside every result. A re-run
-reproduced the saved 0.841 proxy F1 exactly; see
-[results/reproduction/PROVENANCE.md](results/reproduction/PROVENANCE.md) for what
-is and is not recorded (notably, no Hugging Face dataset revision). Do not
+reproduced the saved 0.841 proxy F1 exactly; see the baseline record in
+[docs/METHOD.md](docs/METHOD.md) for what is and is not recorded (notably, no
+Hugging Face dataset revision). Do not
 describe it as typed-relation performance.
 
 ## Page-level inference (original Doc2Graph)
@@ -154,8 +153,5 @@ citation support.
 - `doc2graph/graph_store.py`: lightweight SQLite graph storage and CLI.
 - `doc2graph/vector_store.py`, `doc2graph/langchain_models.py`: optional
   embedding cache and LLM/embedding adapters.
-- `tests/`: unit and integration coverage for graph construction and optional
-  components.
+- `tests/`: unit and integration tests (kept local, not in the repository).
 - `docs/METHOD.md`: method, assumptions, and current limits.
-- `results/doclaynet_eval.md`: existing proxy result; not a typed-relation
-  benchmark.

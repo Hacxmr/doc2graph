@@ -39,9 +39,22 @@ DocLayNet-small provides no labels for `CONTINUES`, `SAME_TABLE`, or
 page headers and footers from category and geometry. Its reported page-number
 system has macro F1 0.841 (95% document-bootstrap CI 0.778–0.895); it is a result
 for repeated-element linking only. The pages are sampled and often nonadjacent,
-so paragraph continuation and reading order are not evaluated. See
-[`results/doclaynet_eval.md`](../results/doclaynet_eval.md) for the complete
-protocol and results.
+so paragraph continuation and reading order are not evaluated.
+
+### Baseline record
+
+- Command: `python -m doc2graph.eval_multipage --root <small_dataset> --cv 5 --bootstrap 1000 --seed 0 --min-iou 0.5`.
+- Headline row `proposed_page_numbers` (page numbers are opt-in), hand-set tolerances (0.05, 0.02):
+  P 0.782, R 0.861, F1 0.841 [0.778, 0.895]. The 5-fold held-out F1 is 0.848 [0.786, 0.908].
+  Without page numbers, `proposed` reaches F1 0.405; exact-text matching 0.204.
+- A re-run on 2026-10-10 with unchanged code reproduced the saved results JSON exactly
+  (parsed comparison). Environment: Python 3.10.19, torch 2.6.0, dgl 1.1.3, numpy 1.26.4.
+- Dataset: DocLayNet-small (`pierreguillou/DocLayNet-small`), content hash
+  `4ba594b7f63d76e57e5fd4e284bc025f3f3d2011a8f9b9a9893917d9afb2fbeb`
+  (sha256 over sorted relative paths and per-file sha256, `._*` files excluded).
+- Not recorded: the original run's exact arguments (`--cv 5` is inferred), the Hugging Face
+  dataset revision, and a single source commit (the re-run used an uncommitted tree).
+  Result files are kept locally, not in the repository.
 
 ## Benchmark protocol
 
