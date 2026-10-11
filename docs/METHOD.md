@@ -1,4 +1,4 @@
-# Method and evaluation limits
+# Method and evaluation plan
 
 ## Research question
 
@@ -8,29 +8,45 @@ is to determine whether structural rules and embeddings produce correct typed
 relations, rather than treating infrastructure or proxy scores as evidence of
 relation accuracy.
 
+## Data model
+
+- A document is an ordered list of pages; a page is a list of text blocks with a pixel box and a
+  page-normalised box.
+- A block is identified by `<document>:p<page_no>:n<node>`, for example `MongoDB-manual.pdf:p40:n0`.
+  Node IDs come from the page graph and do not change when pages are merged.
+- Edges are stored once, from the earlier block to the later one, with a relation, an origin
+  (`rule`, `embedding` or `llm`), a score and a short rationale.
+
+| Relation | Scope | Source |
+|---|---|---|
+| `NEXT`, `NEAR` | within a page | reading order; Doc2Graph kNN neighbours |
+| `SAME_ENTITY` | across pages | repeated text, identifiers, page slots, distinctive shared terms |
+| `CONTINUES`, `SAME_TABLE`, `REFERS_TO` | across pages | layout rules, optional LLM for ambiguous candidates |
+| `SIMILAR_TO` | across pages | embedding neighbour above a similarity threshold, when no stronger relation applies |
+
 ## Pipeline
 
-1. **Page graphs:** use the existing Doc2Graph page representation and
-   intra-page structure.
-2. **Document graph:** preserve page order, node IDs, page metadata, and
-   intra-page edges when joining pages.
-3. **Repeated entities:** generate `SAME_ENTITY` links from repeated text,
-   identifiers, repeated page slots, and distinctive shared terms. Reduce
-   redundant links to page-ordered chains.
-4. **Cross-page candidates:** use structural rules and optional embeddings.
-   Measure candidate-generation recall independently of classification.
-5. **Typed relations:** assign `CONTINUES`, `SAME_TABLE`, and `REFERS_TO`.
-   Rules are the baseline; an LLM is an optional experimental classifier.
-6. **Storage and inspection:** use the lightweight SQLite graph store and
-   basic graph visualization.
-7. **Evaluation:** compare predictions with human-labelled relationships,
-   reporting per-relation precision, recall, F1, error analysis, and ablations.
+1. **Page graphs:** the existing Doc2Graph page representation and intra-page structure.
+2. **Document graph:** preserve page order, node IDs, page metadata and intra-page edges when joining
+   pages (`data/document_graph.py`).
+3. **Repeated entities:** generate `SAME_ENTITY` links (`data/multipage.py`) and reduce them to
+   page-ordered chains (`data/edge_reduction.py`): duplicates collapse, the weakest link of any cycle is
+   dropped, and no link is invented.
+4. **Cross-page candidates:** layout rules and, optionally, embedding nearest neighbours on other pages
+   (`data/relations.py`). Candidate-generation recall is measured separately from classification.
+5. **Typed relations:** a candidate is accepted by rule when its evidence is unambiguous, sent to the
+   optional classifier when it is not, and otherwise dropped. The classifier only labels existing
+   candidates; its output is validated (known relation, one the rules allowed, confidence in range), so it
+   cannot invent nodes, pages or relation types. Self-reported LLM confidence is not a calibrated
+   probability.
+6. **Storage and inspection:** the SQLite graph store (`graph_store.py`) and the drawing script.
+7. **Evaluation:** compare predictions with human-labelled relationships, reporting per-relation
+   precision, recall, F1, error analysis and ablations.
 
-The SQLite embedding cache is optional, and the LLM classifier is experimental. FAISS, the
-embedding map and the vector-store CLI/benchmark were removed.
-Neo4j export, the 3D viewer, the LangChain retriever/RAG, and invoice-specific
-extraction were removed to keep the repository focused; they can be recovered
-from git history. None of them establishes cross-page relation quality.
+Embeddings are a core component; the SQLite embedding cache (`vector_store.py`) is an optional
+convenience. Neo4j export, the 3D viewer, the LangChain retriever/RAG, invoice extraction, FAISS and the
+embedding map were removed to keep the repository focused; they remain in git history and none of them
+bears on cross-page relation quality.
 
 ## Existing proxy evaluation
 
@@ -86,10 +102,10 @@ Every evaluation run should record:
 
 - Git commit hash and any local modifications.
 - Python and dependency versions.
-- Dataset source, version, and document selection.
-- Configuration, thresholds, embedding model, and classifier settings.
-- The exact command, complete metrics, and output artifact location.
+- Dataset source, version and document selection.
+- Configuration, thresholds, embedding model and classifier settings.
+- The exact command, complete metrics and where the output is stored.
 
-The checked-in DocLayNet result is an existing report, not a freshly reproduced
-baseline for a new checkout. Re-run the suite and proxy evaluation before
-claiming reproduction.
+Result files and generated databases are not committed (`results/` and `*.db` are gitignored). Keep them
+locally or archive them with the run record. The baseline record above is the only result summary kept
+in the repository, and it is a proxy result, not typed-relation accuracy.
