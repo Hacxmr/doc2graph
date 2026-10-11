@@ -220,14 +220,10 @@ class GraphBuilder:
     def __fromIMG(self, paths: list):
         graphs, node_labels, edge_labels = list(), list(), list()
         features = {"paths": paths, "texts": [], "boxs": []}
+        reader = easyocr.Reader(["en"])  #! TODO: in the future, handle multilanguage!
 
         for path in paths:
-            reader = easyocr.Reader(
-                ["en"]
-            )  #! TODO: in the future, handle multilanguage!
             result = reader.readtext(path, paragraph=True)
-            img = Image.open(path).convert("RGB")
-            draw = ImageDraw.Draw(img)
             boxs, texts = list(), list()
 
             for r in result:
@@ -237,14 +233,11 @@ class GraphBuilder:
                     int(r[0][2][0]),
                     int(r[0][2][1]),
                 ]
-                draw.rectangle(box, outline="red", width=3)
                 boxs.append(box)
                 texts.append(r[1])
 
             features["boxs"].append(boxs)
             features["texts"].append(texts)
-            img.save("prova.png")
-
             if self.edge_type == "fully":
                 u, v = self.fully_connected(range(len(boxs)))
             elif self.edge_type == "knn":

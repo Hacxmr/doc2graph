@@ -1,239 +1,161 @@
-# <p align=center>`Doc2Graph`</p> 
+# Doc2Graph multi-page extension
 
-![model](model.png)
+Doc2Graph builds a graph for each page. This project extends it to documents by
+preserving page order and node IDs, linking repeated entities across pages, and
+adding typed cross-page relation candidates. The research question is whether
+structural rules and embeddings can identify useful cross-page relations.
 
-![Python](https://img.shields.io/badge/python-3.8%7C3.9%7C3.10%7C3.11-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![PyTorch](https://img.shields.io/badge/PyTorch-1.12%2B-EE4C2C?style=for-the-badge&logo=PyTorch&logoColor=white) ![uv](https://img.shields.io/badge/uv-package%20manager-FFD43B?style=for-the-badge&logo=python&logoColor=black) ![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
+The original Doc2Graph system is described in [the ECCV 2022 paper](https://arxiv.org/abs/2208.11168).
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/andreagemelli/doc2graph)
+## Research status
 
-This library is the implementation of the paper [Doc2Graph: a Task Agnostic Document Understanding Framework based on Graph Neural Networks](https://arxiv.org/abs/2208.11168), accepted at [TiE @ ECCV 2022](https://sites.google.com/view/tie-eccv2022/accepted-papers?authuser=0).
+The existing DocLayNet-small result evaluates a proxy task: linking repeated
+headers and footers. With page numbers enabled, its reported macro F1 is 0.841
+(95% document-bootstrap CI 0.778–0.895). This does **not** measure the accuracy
+of `CONTINUES`, `SAME_TABLE`, or `REFERS_TO`. Those relations have not yet been
+evaluated against human labels, and the repository has no retrieval benchmark.
+See [the evaluation record](results/doclaynet_eval.md) and
+[method and limits](docs/METHOD.md).
 
-The model and pipeline aims at being task-agnostic on the domain of Document Understanding. It is an ongoing project, these are the steps already achieved and the ones we would like to implement in the future:
+The next research milestone is a labelled pilot set of 30–50 multi-page
+documents, followed by relation-wise evaluation, candidate-generation recall,
+and controlled rules / embeddings / optional LLM ablations.
 
-- [x] Build a model based on GNNs to spot key-value relationships on forms
-- [x] Publish the preliminary results and the code
-- [x] Extend the framework to other document-related tasks
-  - [x] Business documents Layout Analysis
-  - [x] Table Detection
-- [ ] Let the user train Doc2Graph over private / other datasets using our dataloader
-- [ ] Publish Doc2Graph to PyPI for easy installation
-- [ ] Retrain Doc2Graph in a new and extended version
+## Core pipeline
 
+1. Build page-level graphs using the existing Doc2Graph representation.
+2. Merge pages in document order, preserving node identity and page metadata.
+3. Generate cross-page candidates with structural rules and, optionally,
+   embeddings.
+4. Assign `CONTINUES`, `SAME_TABLE`, and `REFERS_TO` with rules; an LLM can be
+   enabled as an experimental classifier for ambiguous candidates.
+5. Store and inspect the graph in SQLite; evaluate against human annotations.
 
-## Quick Start
+`SAME_ENTITY` links and edge reduction remain available for repeated text,
+identifiers, and running elements. SQLite is sufficient for the default graph
+workflow. The SQLite embedding cache (`--vector-db`) is optional.
 
-Get up and running with Doc2Graph in minutes:
+## Setup
 
-```bash
-# Clone and install
-git clone https://github.com/andreagemelli/doc2graph.git
-cd doc2graph
-uv sync
-uv pip install -e .
+Requires Python 3.9–3.11 and [uv](https://docs.astral.sh/uv/).
 
-# Initialize the project (downloads datasets)
-uv run python -m doc2graph.main --init
-
-# Run inference on a document
-uv run python -m doc2graph.main \
-   -addG -addT -addE -addV \
-   --weights e2e-funsd-best.pt \
-   --inference \
-   --docs /path/to/your/image.png
-```
-
-Check out the [tutorial notebook](tutorial/kie.ipynb) for a complete walkthrough!
-
-Index:
-- [`Doc2Graph`](#doc2graph)
-  - [News!](#news)
-  - [Environment Setup](#environment-setup)
-  - [Training](#training)
-  - [Testing](#testing)
-  - [Cite this project](#cite-this-project)
-
----
-## News!
-- 🔥 Added **inference** method: you can now use Doc2Graph directly on your documents simply passing a path to them! <br> This call will output an image with the connected entities and a json / dictionary with all the useful information you need! 🤗
-```
-uv run python -m doc2graph.main \
-   -addG -addT -addE -addV \
-   --weights e2e-funsd-best.pt \
-   --inference \
-   --docs /path/to/your/image.png
-```
-  
-- 🔥 Added **tutorial** folder: get to know how to use Doc2Graph from the tutorial notebooks!
-
-## Environment Setup
-
-### Prerequisites
-- Python 3.8-3.11 (recommended: 3.10)
-- [uv](https://docs.astral.sh/uv/) package manager
-
-### Installation
-
-1. **Install uv** (if not already installed):
-```bash
-pip install uv
-```
-
-2. **Clone and setup the project**:
-```bash
-git clone https://github.com/andreagemelli/doc2graph.git
-cd doc2graph
-```
-
-3. **Install the package in development mode**:
 ```bash
 uv sync
-uv pip install -e .
 ```
 
-This will:
-- Install all dependencies with compatible versions
-- Install the `doc2graph` package in development mode
-- Set up the virtual environment with Python 3.10
+Optional components are isolated in extras:
 
-### Additional Setup (Optional)
+| Extra | Use |
+|---|---|
+| `local-embeddings` | Local sentence-transformer embeddings for cross-page retrieval |
+| `huggingface` | Hugging Face embeddings and experimental LLM classification (`HF_TOKEN`) |
+| `langchain` | LangChain adapters for embeddings and the LLM classifier |
 
-For GPU acceleration, you may need to install CUDA-specific versions of PyTorch and DGL:
+Neo4j export, the 3D viewer, the LangChain retriever/RAG, and invoice
+extraction were removed from the codebase (see git history); they are outside
+the research pipeline.
+
+## Reproduce the existing proxy baseline
+
+Download and unpack the public [DocLayNet-small sample](https://huggingface.co/datasets/pierreguillou/DocLayNet-small):
 
 ```bash
-# For CUDA 11.8 (adjust version as needed)
-uv add torch==1.13.1+cu118 torchvision==0.14.1+cu118 --index-url https://download.pytorch.org/whl/cu118
-uv add dgl-cu118 --index-url https://data.dgl.ai/wheels/repo.html
+mkdir -p data_external && cd data_external
+curl -L -O https://huggingface.co/datasets/pierreguillou/DocLayNet-small/resolve/main/data/dataset_small.zip
+unzip -q dataset_small.zip -d doclaynet_small_dl/extracted
+cd ..
 ```
 
-**Note**: For different OS installations or CUDA versions, refer to [PyTorch](https://pytorch.org/get-started/previous-versions/) and [DGL](https://www.dgl.ai/pages/start.html) documentation.
+Run the existing test suite and proxy evaluation (the `--cv 5` fold check is part of
+the reported result; the other values are the defaults):
 
-Finally, create the project folder structure and download data:
-
+```bash
+uv run pytest tests
+uv run python -m doc2graph.eval_multipage \
+  --root data_external/doclaynet_small_dl/extracted/small_dataset \
+  --cv 5 --bootstrap 1000 --seed 0 --min-iou 0.5 \
+  --out results/doclaynet_eval_rerun.json
 ```
-uv run python -m doc2graph.main --init
-```
-The script will download and setup:
-- FUNSD and the 'adjusted_annotations' for FUNSD[^1] are given by the work of[^3].
-- The yolo detection bbox described in the paper (If you want to use YOLOv5-small to detect entities, script in `notebooks/YOLO.ipynb`, refer to [their github](https://github.com/ultralytics/yolov5) for the installation. Clone the repository into `doc2graph/models/yolov5`).
-- The Pau Riba's[^2] dataset with our train / test split.
 
-[^1]: G. Jaume et al., FUNSD: A Dataset for Form Understanding in Noisy Scanned Documents, ICDARW 2019
-[^2]: P. Riba et al, Table Detection in Invoice Documents by Graph Neural Networks, ICDAR 2019
-[^3]: Hieu M. Vu et al., REVISING FUNSD DATASET FOR KEY-VALUE DETECTION IN DOCUMENT IMAGES, arXiv preprint 2020
+Record the source commit, Python/package environment, dataset source/version,
+command/configuration, and complete output alongside every result. A re-run
+reproduced the saved 0.841 proxy F1 exactly; see
+[results/reproduction/PROVENANCE.md](results/reproduction/PROVENANCE.md) for what
+is and is not recorded (notably, no Hugging Face dataset revision). Do not
+describe it as typed-relation performance.
 
-**Checkpoints**
-You can download our model checkpoints [here](https://drive.google.com/file/d/15jKWYLTcb8VwE7XY_jcRvZTAmqy_ElJ_/view?usp=sharing). Place them into `doc2graph/models/checkpoints`.
+## Page-level inference (original Doc2Graph)
 
----
-## Training
-1. To train our **Doc2Graph** model (using CPU) use:
-```
-uv run python -m doc2graph.main [SETTINGS]
-```
-2. Instead, to test a trained **Doc2Graph** model (using GPU) [weights can be one or more file]:
-```
-uv run python -m doc2graph.main [SETTINGS] --gpu 0 --test --weights *.pt
-```
-The project can be customized either changing directly `configs/base.yaml` file or providing these flags when calling `doc2graph.main`.
+The pretrained checkpoints expect the same feature flags they were trained with;
+without them the model has no input features and fails.
 
-**Features**
- - --add-geom: bool (to add positional features to graph nodes)
- - --add-embs: bool (to add textual features to graph nodes)
- - --add-hist: bool (to add visual features to graph nodes)
- - --add-visual: bool (to add visual features to graph nodes)
- - --add-eweights: bool (to add polar relative coordinates between nodes to graph edges)
-
-**Data**
- - --src-data: string [FUNSD, PAU or CUSTOM] (CUSTOM still under dev)
- - --src-type: string [img, pdf] (if src_data is CUSTOM, still under dev)
-
-**Graphs**
- - --edge-type: string [fully, knn] (to change the kind of connectivity)
- - --node-granularity: string [gt, yolo, ocr] (choose the granularity of nodes to be used, gt (if given), ocr (words) or yolo (entities))
- - --num-polar-bins: int [Default 8] (number of bins into which discretize the space for edge polar features. It must be a power of 2)
-
- **Inference (only for KiE)**
- - --inference: bool (run inference on given document/s path/s)
- - --docs: list (list your absolute path to your document)
-
-Change directly `configs/train.yaml` for training settings or pass these flags to `doc2graph.main`. To create your own model (changing hyperparams) copy `configs/models/*.yaml`. 
-
-**Training/Testing**
-- --model: string [e2e, edge, gcn] (which model to use, which yaml file to load)
-- --gpu: int [Default -1] (which GPU to use. Set -1 to use CPU)
-- --test: true / false (skip training if true)
-- --weights: strin(s) (provide weight file(s) relative path(s), if testing)
-
-## Testing
-
-You can use our pretrained models over the test sets of FUNSD[^1] and Pau Riba's[^2] datasets.
-
-1. On FUNSD we were able to perform both Semantic Entity Labeling and Entity Linking:
-
-**E2E-FUNSD-GT**:
-```
+```bash
 uv run python -m doc2graph.main \
   -addG -addT -addE -addV \
-  --gpu 0 \
-  --test \
-  --weights e2e-funsd-best.pt
-```
-
-**E2E-FUNSD-YOLO**:
-```
-uv run python -m doc2graph.main \
-  -addG -addT -addE -addV \
-  --gpu 0 \
-  --test \
   --weights e2e-funsd-best.pt \
-  --node-granularity yolo
+  --inference \
+  --docs /path/to/your/image.png
 ```
 
-2. on Pau Riba's dataset, we were able to perform both Layout Analysis and Table Detection
+Add `--multipage` and pass two or more page images to also write
+`inference/document_graph.json` with cross-page text matches.
 
-**E2E-PAU**:
-```
-uv run python -m doc2graph.main \
-  -addG -addT -addE -addV \
-   --gpu 0 \
-   --test  \
-   --weights e2e-pau-best.pt \
-   --src-data PAU \
-   --edge-type knn
-```
-  
----
-## Cite this project
-If you want to use our code in your project(s), please cite us:
-```
-@InProceedings{10.1007/978-3-031-25069-9_22,
-author="Gemelli, Andrea
-and Biswas, Sanket
-and Civitelli, Enrico
-and Llad{\'o}s, Josep
-and Marinai, Simone",
-editor="Karlinsky, Leonid
-and Michaeli, Tomer
-and Nishino, Ko",
-title="Doc2Graph: A Task Agnostic Document Understanding Framework Based on Graph Neural Networks",
-booktitle="Computer Vision -- ECCV 2022 Workshops",
-year="2023",
-publisher="Springer Nature Switzerland",
-address="Cham",
-pages="329--344",
-abstract="Geometric Deep Learning has recently attracted significant interest in a wide range of machine learning fields, including document analysis. The application of Graph Neural Networks (GNNs) has become crucial in various document-related tasks since they can unravel important structural patterns, fundamental in key information extraction processes. Previous works in the literature propose task-driven models and do not take into account the full power of graphs. We propose Doc2Graph, a task-agnostic document understanding framework based on a GNN model, to solve different tasks given different types of documents. We evaluated our approach on two challenging datasets for key information extraction in form understanding, invoice layout analysis and table detection. Our code is freely accessible on https://github.com/andreagemelli/doc2graph.",
-isbn="978-3-031-25069-9"
-}
+## Build and inspect a graph
+
+```bash
+DATA=data_external/doclaynet_small_dl/extracted/small_dataset
+uv run python -m doc2graph.graph_store build \
+  --root "$DATA" --db results/doclaynet_graph.db --typed
+uv run python -m doc2graph.graph_store summary --db results/doclaynet_graph.db
 ```
 
----
+For embedding-based candidate retrieval, install the optional local backend and
+build the same documents with the same graph settings:
 
-## ⚠️ Security Notice
+```bash
+uv sync --extra local-embeddings
+uv run python -m doc2graph.graph_store build \
+  --root "$DATA" --db results/doclaynet_graph_embeddings.db --local-embeddings
+```
 
-**DGL Vulnerability**: This project uses `dgl>=1.1.3,<2.0.0` which has a known security vulnerability related to RPC pickle deserialization (GHSA-3x5x-fw77-g54c). 
+For an experimental LLM ablation, use a small fixed document subset and record
+model, prompt/version, latency, token/cost data, and the candidate set:
 
-**Workaround**: When running DGL distributed training and inference (DistDGL), ensure you do not assign public IPs to any instance in the cluster.
+```bash
+uv sync --extra huggingface
+export HF_TOKEN=...
+uv run python -m doc2graph.graph_store build \
+  --root "$DATA" --db results/doclaynet_graph_llm.db --hf --docs <document.pdf>
+```
 
-**Resolution**: This vulnerability will be addressed in future versions of the project when a compatible DGL version with the security fix becomes available.
+## Evaluation plan
 
-For more details, see the [DGL security advisory](https://github.com/dmlc/dgl/security/advisories/GHSA-3x5x-fw77-g54c).
+The current proxy score must remain separate from the new human-labelled
+benchmark. Start with 30–50 varied multi-page documents covering paragraph
+continuations, section transitions, tables spanning pages, references, and
+repeated elements. Use [the annotation guidelines](docs/ANNOTATION_GUIDELINES.md)
+to label `CONTINUES`, `SAME_TABLE`, and `REFERS_TO`; double-label a subset and
+report agreement and adjudication.
+
+Report precision, recall, and F1 per relation, plus candidate-generation recall
+before classification. Compare rules only, rules plus embeddings, and rules plus
+embeddings plus optional LLM under the same documents and candidate conditions.
+Include latency and LLM cost, then inspect false positives and false negatives
+before changing a component. Evaluate graph-aware retrieval against ordinary
+text retrieval only after edge quality has been measured, using 20–30 questions
+that require evidence from multiple pages and checking answer correctness and
+citation support.
+
+## Repository map
+
+- `doc2graph/data/`: page graphs, document graphs, repeated-entity linking,
+  edge reduction, and typed relation candidates.
+- `doc2graph/eval_multipage.py`: existing DocLayNet proxy evaluation.
+- `doc2graph/graph_store.py`: lightweight SQLite graph storage and CLI.
+- `doc2graph/vector_store.py`, `doc2graph/langchain_models.py`: optional
+  embedding cache and LLM/embedding adapters.
+- `tests/`: unit and integration coverage for graph construction and optional
+  components.
+- `docs/METHOD.md`: method, assumptions, and current limits.
+- `results/doclaynet_eval.md`: existing proxy result; not a typed-relation
+  benchmark.

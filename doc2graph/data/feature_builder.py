@@ -105,7 +105,8 @@ class FeatureBuilder:
             # visual features
             # https://pytorch.org/vision/stable/generated/torchvision.ops.roi_align.html?highlight=roi
             if self.add_visual:
-                img = Image.open(features["paths"][id])
+                # This backbone is initialized with in_channels=1.
+                img = Image.open(features["paths"][id]).convert("L")
                 visual_emb = self.visual_embedder(
                     tvF.to_tensor(img).unsqueeze_(0).to(self.device)
                 )  # output [batch, channels, dim1, dim2]
@@ -148,7 +149,9 @@ class FeatureBuilder:
                     distances.append(dist)
                     angles.append(angle)
 
-                m = max(distances)
+                # A page containing a single OCR node has no graph edges.
+                # Keep feature construction valid for that case too.
+                m = max(distances, default=1.0) or 1.0
                 polar_coordinates = to_bin(distances, angles, self.num_polar_bins)
                 g.edata["feat"] = polar_coordinates
 

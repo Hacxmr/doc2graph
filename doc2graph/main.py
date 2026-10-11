@@ -112,8 +112,15 @@ def main():
         default=None,
         help="provide documents to do inference on them",
     )
+    parser.add_argument(
+        "--multipage",
+        action="store_true",
+        help="write semantic candidate links between pages in a multi-image document",
+    )
 
     args = parser.parse_args()
+    if args.multipage and not args.inference:
+        parser.error("--multipage only applies together with --inference")
     print(args)
 
     if args.init:
@@ -125,7 +132,7 @@ def main():
         set_preprocessing(args)
         if args.inference:
             create_folder("inference")
-            inference(args.weights, args.docs, args.gpu)
+            inference(args.weights, args.docs, args.gpu, multipage=args.multipage)
         elif args.src_data == "FUNSD":
             if args.test and args.weights is None:
                 raise Exception(

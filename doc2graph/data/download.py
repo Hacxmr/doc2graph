@@ -3,17 +3,18 @@ import shutil
 import zipfile
 
 import requests
-import wget
 
 from ..paths import DATA
 from ..utils import create_folder
 
 
-def download_url(url, save_path, chunk_size=128):
+def download_url(url, save_path, chunk_size=1024 * 1024):
     r = requests.get(url, stream=True)
+    r.raise_for_status()
     with open(save_path, "wb") as fd:
         for chunk in r.iter_content(chunk_size=chunk_size):
-            fd.write(chunk)
+            if chunk:
+                fd.write(chunk)
 
 
 def funsd():
@@ -28,18 +29,18 @@ def funsd():
 
     # adjusted annotations
     aa_train = os.path.join(DATA / "adjusted_annotations.zip")
-    wget.download(
-        url="https://docs.google.com/uc?export=download&id=1cQE2dnLGh93u3xMUeGQRXM81tF2l0Zut",
-        out=aa_train,
+    download_url(
+        "https://docs.google.com/uc?export=download&id=1cQE2dnLGh93u3xMUeGQRXM81tF2l0Zut",
+        aa_train,
     )
     with zipfile.ZipFile(aa_train, "r") as zip_ref:
         zip_ref.extractall(DATA / "FUNSD/training_data")
     os.remove(aa_train)
 
     aa_test = os.path.join(DATA / "adjusted_annotations.zip")
-    wget.download(
-        url="https://docs.google.com/uc?export=download&id=18LXbRhjnkdsAvWBFhUdr7_44bfaBo0-v",
-        out=aa_test,
+    download_url(
+        "https://docs.google.com/uc?export=download&id=18LXbRhjnkdsAvWBFhUdr7_44bfaBo0-v",
+        aa_test,
     )
     with zipfile.ZipFile(aa_test, "r") as zip_ref:
         zip_ref.extractall(DATA / "FUNSD/testing_data")
@@ -48,18 +49,18 @@ def funsd():
     # yolo_bbox
     yolo_train = os.path.join(DATA / "yolo_bbox.zip")
 
-    wget.download(
-        url="https://docs.google.com/uc?export=download&id=1UzL5tYtBWDXk_nXj4KtoDMyBt7S3j-aS",
-        out=yolo_train,
+    download_url(
+        "https://docs.google.com/uc?export=download&id=1UzL5tYtBWDXk_nXj4KtoDMyBt7S3j-aS",
+        yolo_train,
     )
     with zipfile.ZipFile(yolo_train, "r") as zip_ref:
         zip_ref.extractall(DATA / "FUNSD/training_data")
     os.remove(yolo_train)
 
     yolo_test = os.path.join(DATA / "yolo_bbox.zip")
-    wget.download(
-        url="https://docs.google.com/uc?export=download&id=1fWwbhfvINYFQmoPHpwlH8olyTyJPIe_-",
-        out=yolo_test,
+    download_url(
+        "https://docs.google.com/uc?export=download&id=1fWwbhfvINYFQmoPHpwlH8olyTyJPIe_-",
+        yolo_test,
     )
     with zipfile.ZipFile(yolo_test, "r") as zip_ref:
         zip_ref.extractall(DATA / "FUNSD/testing_data")
@@ -73,9 +74,9 @@ def pau():
 
     PAU = DATA / "PAU"
     spl = os.path.join(DATA, "pau_split.zip")
-    wget.download(
-        url="https://docs.google.com/uc?export=download&id=1NKlME13tRIDraSid7r3v_huTqFdHgo-G",
-        out=spl,
+    download_url(
+        "https://docs.google.com/uc?export=download&id=1NKlME13tRIDraSid7r3v_huTqFdHgo-G",
+        spl,
     )
     with zipfile.ZipFile(spl, "r") as zip_ref:
         zip_ref.extractall(PAU)

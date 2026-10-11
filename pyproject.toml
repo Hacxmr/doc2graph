@@ -26,14 +26,10 @@ dependencies = [
     "scipy>=1.10.0",
     # NLP
     "spacy>=3.6.0,<4.0.0",
-    "fasttext>=0.9.2",
     # Visualization
     "matplotlib>=3.7.0",
-    "tensorboard>=2.13.0",
     # Utilities
     "pyyaml>=6.0",
-    "itsdangerous>=2.0.1",
-    "wget>=3.2",
     "requests>=2.28.0",
     "tqdm>=4.64.0",
     "pydantic>=1.10.13,<3.0.0",
@@ -41,9 +37,17 @@ dependencies = [
     "pytest>=7.4.0",
     "ruff>=0.1.0",
     "en-core-web-lg",
-    "jupyter>=1.1.1",
     "pip-audit>=2.7.3",
 ]
+
+[project.optional-dependencies]
+# LangChain adapters for embeddings and the optional LLM classifier (doc2graph/langchain_models.py)
+langchain = ["langchain-core>=0.3"]
+# Hugging Face Inference API models for the relation classifier / embeddings
+huggingface = ["langchain-core>=0.3", "langchain-huggingface>=0.1"]
+
+# Embeddings computed locally with sentence-transformers (no API token)
+local-embeddings = ["langchain-core>=0.3", "langchain-huggingface>=0.1", "sentence-transformers>=2.7"]
 
 [tool.setuptools.packages.find]
 where = ["."]

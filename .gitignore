@@ -7,6 +7,7 @@ build
 .vscode
 cc.*
 *.DS_Store
+._*
 *.egg-info/
 .ipynb_checkpoints/
 
@@ -23,3 +24,24 @@ src/models/yolov5
 src/models/checkpoints
 prova*
 inference
+data_external/
+.fuse_hidden*
+results/*_rerun.*
+
+# generated / local-only
+*.db
+*.sqlite
+.pytest_cache/
+.ruff_cache/
+.uv-cache/
+.venv/
+.fuse_hidden*
+
+# local-only tests (kept on disk, not pushed)
+tests/
+
+# misc local
+.claude/
+*.log
+.env
+.ipynb_checkpoints/

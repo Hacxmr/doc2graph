@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it and the original Doc2Graph paper."
+title: "Doc2Graph multi-page: typed cross-page document graphs"
+type: software
+authors:
+  - family-names: Raj
+    given-names: Mitali
+  - family-names: Biswas
+    given-names: Sanket
+    title: Dr.
+  - family-names: Lladós
+    given-names: Josep
+    title: Dr.
+repository-code: "https://github.com/Hacxmr/doc2graph"
+license: MIT
+version: 0.3.0
+references:
+  - type: conference-paper
+    title: "Doc2Graph: a Task Agnostic Document Understanding Framework based on Graph Neural Networks"
+    authors:
+      - family-names: Gemelli
+        given-names: Andrea
+      - family-names: Biswas
+        given-names: Sanket
+      - family-names: Civitelli
+        given-names: Enrico
+      - family-names: Lladós
+        given-names: Josep
+      - family-names: Marinai
+        given-names: Simone
+    collection-title: "ECCV 2022 Workshop on Text in Everything (TiE)"
+    year: 2022
+    url: "https://arxiv.org/abs/2208.11168"
+  - type: conference-paper
+    title: "DocLayNet: A Large Human-Annotated Dataset for Document-Layout Analysis"
+    authors:
+      - family-names: Pfitzmann
+        given-names: Birgit
+      - family-names: Auer
+        given-names: Christoph
+      - family-names: Dolfi
+        given-names: Michele
+      - family-names: Nassar
+        given-names: Ahmed S.
+      - family-names: Staar
+        given-names: Peter
+    collection-title: "KDD 2022"
+    year: 2022
